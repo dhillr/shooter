@@ -14,6 +14,7 @@ clock = pygame.time.Clock()
 glow_image = pygame.transform.scale(pygame.image.load("images/glow.png").convert_alpha(), (50, 50))
 
 font = pygame.font.Font("fonts/font.otf", 60)
+font_small = pygame.font.Font("fonts/font.otf", 30)
 font_big = pygame.font.Font("fonts/font.otf", 120)
 font_italic = pygame.font.Font("fonts/font_italic.otf", 20)
 
@@ -23,6 +24,20 @@ def normalize(v: tuple[float, float]):
 
 def mult(v: tuple[float, float], multiplier: float):
     return (v[0] * multiplier, v[1] * multiplier)
+
+class Button:
+    def __init__(self, x, y, text, event):
+        self.x = x
+        self.y = y
+        self.text_surface = font_small.render(text, True, (0, 0, 0))
+        self.event = event
+
+    def draw(self, surface: pygame.Surface):
+        pygame.draw.rect(surface, (255, 31, 255), (self.x, self.y, 200, 50))
+        surface.blit(self.text_surface, self.text_surface.get_rect(center=(self.x+100, self.y+22.5)))
+
+        if pygame.Rect((self.x, self.y, 200, 50)).collidepoint(pygame.mouse.get_pos()):
+            self.event()
 
 class Game:
     def __init__(self):
@@ -213,18 +228,28 @@ while True:
     radius = 0
 
     letter = font_big.render("g", True, (255, 255, 255))
+    score = font_small.render(f"final score: {player.score}", True, (255, 255, 255))
 
-    while True:
+    menu = True
+
+    buttons = {
+        "play_again": Button(screen.get_size()[0] // 2 - 100, 400, "play again", lambda: globals().update({"menu": False}))
+    }
+
+    while menu:
         blurred: Image = image.filter(ImageFilter.GaussianBlur(radius))
         bg = pygame.transform.scale(pygame.image.frombytes(blurred.tobytes(), dimensions, "RGB"), screen.get_size())
         screen.blit(bg, (0, 0))
         screen.blit(letter, letter.get_rect(center=(screen.get_size()[0] // 2 - 50, 100 + 10 * math.sin(2 * time.time()))))
         screen.blit(letter, letter.get_rect(center=(screen.get_size()[0] // 2 + 30, 100 + 10 * math.sin(2 * time.time() + 1))))
+        screen.blit(score, score.get_rect(center=(screen.get_size()[0] // 2, 200)))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
             if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP: player.handle_event(event)
+
+        buttons["play_again"].draw(screen)
         
         radius += 0.0625 * (20 - radius)
         clock.tick(60)
