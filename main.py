@@ -51,9 +51,8 @@ class Game:
         return_false = False
         screen.fill((31, 31, 31))
         if time.time() - self.enemy_spawn_time > self.enemy_spawn_cooldown:
-            enemy = Enemy(random.randint(0, screen.get_width()), random.randint(0, screen.get_height()), self.players[0])
+            enemy = Enemy(random.randint(0, screen.get_width()), random.randint(0, screen.get_height()), self.players[0]).add_to_game(self)
             enemy.spawn()
-            self.objects.append(enemy)
             self.enemy_spawn_cooldown = random.random()
             self.enemy_spawn_time = time.time()
 
@@ -151,9 +150,13 @@ class Enemy:
         self.x, self.y = (x, y)
         self.vx, self.vy = (0, 0)
         self.target = target
+        self.game = None
 
     def update(self) -> bool:
-        self.vx, self.vy = mult(normalize((self.target.x - self.x, self.target.y - self.y)), 5)
+        speed = 5
+        if self.game.players[0].score > 9: 
+            speed = 5 + math.ceil(math.log(self.game.players[0].score))
+        self.vx, self.vy = mult(normalize((self.target.x - self.x, self.target.y - self.y)), speed)
 
         self.x += self.vx
         self.y += self.vy
@@ -168,6 +171,11 @@ class Enemy:
 
     def draw(self, surface: pygame.Surface):
         pygame.draw.rect(surface, (255, 0, 0), (self.x - 25, self.y - 25, 50, 50))
+
+    def add_to_game(self, game: Game):
+        self.game = game
+        game.objects.append(self)
+        return self
 
 class Bullet:
     def __init__(self, x, y, vx, vy):
@@ -207,10 +215,10 @@ class Bullet:
         game.objects.append(self)
         return self
 
-game: Game = Game()
-player: Player = Player(500, 500).add_to_game(game)
-
 while True:
+    game: Game = Game()
+    player: Player = Player(500, 500).add_to_game(game)
+
     while game.run(screen):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -236,7 +244,8 @@ while True:
         "play_again": Button(screen.get_size()[0] // 2 - 100, 400, "play again", lambda: globals().update({"menu": False}))
     }
 
-    while menu:
+    game.objects.remove(player)
+    while menu:  
         blurred: Image = image.filter(ImageFilter.GaussianBlur(radius))
         bg = pygame.transform.scale(pygame.image.frombytes(blurred.tobytes(), dimensions, "RGB"), screen.get_size())
         screen.blit(bg, (0, 0))
